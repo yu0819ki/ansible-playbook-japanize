@@ -1,0 +1,19 @@
+---
+- name: check distribute
+  fail: msg='this tasks support for CentOS 6.x only. Your distribution is {{ ansible_distribution }} {{ ansible_distribution_version }}'
+  when: ansible_distribution_version|truncate(1, True, '') != '6'
+- name: group-install ja
+  yum: name='@japanese-support' state=present
+- name: check locales
+  shell: locale -a | grep 'ja_JP.utf8'
+  register: check_locales
+  ignore_errors: True
+- name: localedef ja_JP.utf8
+  command: localedef -f UTF-8 -i ja_JP ja_JP.utf8
+  when: check_locales|failed
+- name: modify $LANG
+  lineinfile: dest=/etc/sysconfig/i18n create=yes regexp='^LANG=.*' line='LANG="ja_JP.UTF-8"'
+- name: copy zoneinfo
+  copy: src=/usr/share/zoneinfo/Japan dest=/etc/localtime backup=yes
+- name: set zoneinfo(sub)
+  lineinfile: dest=/etc/sysconfig/clock create=yes regexp='^ZONE=.*' line='ZONE="Asia/Tokyo"'
